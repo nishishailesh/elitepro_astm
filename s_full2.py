@@ -13,12 +13,16 @@ This help in capturing everything between ENQ and EOT and learn equipment specif
 '''
 
 output_folder='/root/elite/' #remember ending/
-input_tty='/dev/ttyUSB0'
+tty=input("Which tty?")
+input_tty='/dev/ttyS'+tty
+print(input_tty)
+
 #For testing
 #socat -d -d - pty,raw,echo=0
 #input_tty='/dev/pts/2'
 
 logging.basicConfig(filename='/root/elitepro.log',level=logging.DEBUG)
+logging.debug('logging started')
 
 def get_filename():
   dt=datetime.datetime.now()
@@ -37,20 +41,21 @@ while byte!=b'':
   if(byte==b'\x05'):
     port.write(b'\x06');
     cur_file=get_filename()					#get name of file to open
-    x=open(cur_file,'w')					#open file    
+    x=open(cur_file,'w')					#open file
     logging.debug('<ENQ> received. <ACK> Sent. Name of File opened to save data:'+str(cur_file))
   elif(byte==b'\x0a'):
     port.write(b'\x06');
     try:
       x.write(''.join(byte_array))			#write to file everytime LF received, to prevent big data memory problem
+      byte_array=[]							#empty array
     except Exception as my_ex:
       logging.debug(my_ex)
     logging.debug('<LF> received. <ACK> Sent. array written to file. byte_array zeroed')
-    
+
   elif(byte==b'\x04'):
     print("<EOF>")
     x.write(''.join(byte_array))			#write last byte(EOF) to file
-    byte_array=[]							#empty array      
+    byte_array=[]							#empty array
     x.close()								#close file
     logging.debug('<EOF> received. array( only EOF remaining ) written to file. File closed:')
 
