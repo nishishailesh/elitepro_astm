@@ -87,10 +87,10 @@ def signal_handler(signal, frame):
     x.write(''.join(byte_array))			#write to file everytime LF received, to prevent big data memory problem
     byte_array=[]							#empty array      
   except Exception as my_ex:
-    logging.debug(my_ex)  
+    logging.debug(my_ex)
   x.close()
   logging.debug('Alarm.... <EOT> NOT received. data may be incomplate')
-  
+
 def get_filename():
   dt=datetime.datetime.now()
   return output_folder+dt.strftime("%Y-%m-%d-%H-%M-%S-%f")
@@ -106,7 +106,7 @@ def get_port():
     s.bind((host_address,int(host_port)))	#it is a tuple
     logging.debug('post-bind pre-listen')
     s.listen(1)
-    
+ 
     logging.debug('Listening Socket (s) details below:')
     logging.debug(s)    
  
@@ -131,6 +131,7 @@ def my_write(port,byte):
     return port.send(byte)
 #main loop##########################
 
+signal.signal(signal.SIGALRM, signal_handler)
 port=get_port()
 
 byte=b'd'									#Just to enter the loop
@@ -147,36 +148,36 @@ while True:
       port=get_port()
     except OSError:
       exception_return = sys.exc_info()
-      logging.debug(exception_return) 
+      logging.debug(exception_return)
       logging.debug('Some problem reconnecting, sleeping for 10 sec')
       time.sleep(10)
   else:
     byte_array=byte_array+[chr(ord(byte))]	#add everything read to array
-    
-    
+    logging.debug(ord(byte))
+
   if(byte==b'\x05'):
     signal.alarm(0)
     logging.debug('Alarm stopped')
-    byte_array=[]							#empty array      
+    byte_array=[]				#empty array
     byte_array=byte_array+[chr(ord(byte))]	#add everything read to array requred here to add first byte
     my_write(port,b'\x06');
     cur_file=get_filename()					#get name of file to open
-    x=open(cur_file,'w')					#open file    
+    x=open(cur_file,'w')					#open file
     logging.debug('<ENQ> received. <ACK> Sent. Name of File opened to save data:'+str(cur_file))
     signal.alarm(alarm_time)
-    logging.debug('Alarm started to receive other data')
+    logging.debug('post-enq-ack Alarm started to receive other data')
   elif(byte==b'\x0a'):
     signal.alarm(0)
     logging.debug('Alarm stopped')
     my_write(port,b'\x06');
     try:
       x.write(''.join(byte_array))			#write to file everytime LF received, to prevent big data memory problem
-      byte_array=[]							#empty array      
+      byte_array=[]							#empty array
     except Exception as my_ex:
       logging.debug(my_ex)
     logging.debug('<LF> received. <ACK> Sent. array written to file. byte_array zeroed')
     signal.alarm(alarm_time)
-    logging.debug('Alarm started to receive other data')    
+    logging.debug('post-lf-ack Alarm started to receive other data')
   elif(byte==b'\x04'):
     signal.alarm(0)
     logging.debug('Alarm stopped')
