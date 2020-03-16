@@ -13,12 +13,13 @@ import sys
 
 #tcp#uncomment as needed
 connection_type='tcp'
-host_address='127.0.0.1'
+host_address='12.207.3.230'
 host_port='11111'
 s=None
+x=None
 logfile_name='/var/log/elitepro.log'
 output_folder='/root/elite/' #remember ending/
-
+alarm_time=10
 #Something I tend to forget####################
 #to try various tty#
 #tty=input("Which tty?")
@@ -76,6 +77,20 @@ elif(connection_type=='tcp'):
     logging.debug("socket module is required. Generally installed with basic python installation.")
     quit()   
 
+
+def signal_handler(signal, frame):
+  global x
+  logging.debug('Alarm stopped')
+  logging.debug(signal)
+  logging.debug(frame)
+  try:
+    x.write(''.join(byte_array))			#write to file everytime LF received, to prevent big data memory problem
+    byte_array=[]							#empty array      
+  except Exception as my_ex:
+    logging.debug(my_ex)  
+  x.close()
+  logging.debug('Alarm.... <EOT> NOT received. data may be incomplate')
+  
 def get_filename():
   dt=datetime.datetime.now()
   return output_folder+dt.strftime("%Y-%m-%d-%H-%M-%S-%f")
@@ -140,12 +155,19 @@ while True:
     
     
   if(byte==b'\x05'):
+    signal.alarm(0)
+    logging.debug('Alarm stopped')
     byte_array=[]							#empty array      
+    byte_array=byte_array+[chr(ord(byte))]	#add everything read to array requred here to add first byte
     my_write(port,b'\x06');
     cur_file=get_filename()					#get name of file to open
     x=open(cur_file,'w')					#open file    
     logging.debug('<ENQ> received. <ACK> Sent. Name of File opened to save data:'+str(cur_file))
+    signal.alarm(alarm_time)
+    logging.debug('Alarm started to receive other data')
   elif(byte==b'\x0a'):
+    signal.alarm(0)
+    logging.debug('Alarm stopped')
     my_write(port,b'\x06');
     try:
       x.write(''.join(byte_array))			#write to file everytime LF received, to prevent big data memory problem
@@ -153,8 +175,11 @@ while True:
     except Exception as my_ex:
       logging.debug(my_ex)
     logging.debug('<LF> received. <ACK> Sent. array written to file. byte_array zeroed')
-    
+    signal.alarm(alarm_time)
+    logging.debug('Alarm started to receive other data')    
   elif(byte==b'\x04'):
+    signal.alarm(0)
+    logging.debug('Alarm stopped')
     x.write(''.join(byte_array))			#write last byte(EOF) to file
     byte_array=[]							#empty array      
     x.close()								#close file
