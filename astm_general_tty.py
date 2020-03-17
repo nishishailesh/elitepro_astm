@@ -13,12 +13,13 @@ import sys
 
 #tcp#uncomment as needed
 connection_type='tcp'
-host_address='12.207.3.230'
+#host_address='12.207.3.230'
+host_address='127.0.0.1'
 host_port='11111'
 s=None
 x=None
-logfile_name='/var/log/elitepro.log'
-output_folder='/root/elite/' #remember ending/
+logfile_name='/var/log/astm_general.log'
+output_folder='/root/astm_general.data/' #remember ending/
 alarm_time=10
 #Something I tend to forget####################
 #to try various tty#
@@ -80,8 +81,10 @@ elif(connection_type=='tcp'):
 
 def signal_handler(signal, frame):
   global x
+  global byte_array
   logging.debug('Alarm stopped')
-  logging.debug(signal)
+  sgl='signal:'+str(signal)
+  logging.debug(sgl)
   logging.debug(frame)
   try:
     x.write(''.join(byte_array))			#write to file everytime LF received, to prevent big data memory problem
